@@ -1,0 +1,151 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'kr.co'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web:3.5.4'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.5.4'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux:3.5.4'
+    
+    // Swagger/OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    
+    // Apache POI for DOCX export
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    
+    // Jakarta Validation
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+}
+
+// 프론트엔드 빌드 디렉토리 설정
+def frontendBuildDir = file('../manuals-front/build')
+def frontendDir = file('../manuals-front')
+def staticOutputDir = file("${projectDir}/src/main/resources/static")
+
+// 프론트엔드 빌드 태스크 (npm 빌드)
+tasks.register('buildFrontend', Exec) {
+    description = 'Build frontend React application'
+    workingDir frontendDir
+    
+    // OS에 따른 npm 명령어 설정
+    if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+        commandLine 'cmd', '/c', 'npm', 'run', 'build'
+    } else {
+        commandLine 'npm', 'run', 'build'
+    }
+    
+    // 이미 빌드된 경우 스킵 가능 (선택적)
+    onlyIf { 
+        !frontendBuildDir.exists() || 
+        project.hasProperty('rebuildFrontend') 
+    }
+}
+
+// 프론트엔드 정적 파일을 resources/static으로 복사
+tasks.register('copyFrontendToResources', Copy) {
+    description = 'Copy frontend build output to resources/static'
+    dependsOn 'buildFrontend'
+    
+    from frontendBuildDir
+    into staticOutputDir
+    
+    // 기존 파일 정리 후 복사
+    doFirst {
+        delete staticOutputDir
+    }
+}
+
+// 프론트엔드 없이 빌드 (기존 빌드 파일만 복사)
+tasks.register('copyExistingFrontend', Copy) {
+    description = 'Copy existing frontend build (without npm build)'
+    
+    from frontendBuildDir
+    into staticOutputDir
+    
+    doFirst {
+        delete staticOutputDir
+    }
+    
+    onlyIf { frontendBuildDir.exists() }
+}
+
+// processResources 전에 프론트엔드 복사 (선택적)
+// 기본적으로는 기존 빌드만 복사, -PrebuildFrontend 옵션 시 재빌드
+processResources {
+    if (project.hasProperty('includeFrontend')) {
+        dependsOn 'copyExistingFrontend'
+    }
+    if (project.hasProperty('rebuildFrontend')) {
+        dependsOn 'copyFrontendToResources'
+    }
+}
+
+// sourcesJar도 프론트엔드 복사 후 실행되도록 설정
+tasks.named('sourcesJar') {
+    if (project.hasProperty('includeFrontend')) {
+        mustRunAfter 'copyExistingFrontend'
+    }
+    if (project.hasProperty('rebuildFrontend')) {
+        mustRunAfter 'copyFrontendToResources'
+    }
+}
+
+javadoc {
+    options {
+        encoding = 'UTF-8'
+        docEncoding = 'UTF-8'
+        charSet = 'UTF-8'
+        addStringOption('Xdoclint:none', '-quiet')
+    }
+    failOnError = false
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'Manuals Common Library'
+                description = 'Common utilities for Manuals project including API management and frontend UI'
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            def repoUrl = System.getenv('GITHUB_REPOSITORY') ?: 'OWNER/manuals-common'
+            url = uri("https://maven.pkg.github.com/${repoUrl}")
+            credentials {
+                username = System.getenv('GITHUB_ACTOR') ?: ''
+                password = System.getenv('GITHUB_TOKEN') ?: ''
+            }
+        }
+    }
+}
