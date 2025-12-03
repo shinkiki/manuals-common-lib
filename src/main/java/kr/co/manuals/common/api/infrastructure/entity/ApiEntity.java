@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tb_api")
+@Table(name = "manuals_api_tb")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

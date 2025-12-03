@@ -1,2 +1,3 @@
 kr.co.manuals.common.api.ApiAutoConfiguration
 kr.co.manuals.common.settings.config.WebStaticResourceConfig
+kr.co.manuals.common.event.EventAutoConfiguration
