@@ -4,7 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import kr.co.manuals.common.event.application.EventService;
 import kr.co.manuals.common.event.application.dto.*;
 import kr.co.manuals.common.event.application.mapper.EventApplicationMapper;
-import kr.co.manuals.common.event.application.support.EventRuntimeScanner;
+import kr.co.manuals.common.event.EventRuntimeScanner;
 import kr.co.manuals.common.event.domain.Event;
 import kr.co.manuals.common.event.domain.EventListener;
 import kr.co.manuals.common.event.domain.port.*;

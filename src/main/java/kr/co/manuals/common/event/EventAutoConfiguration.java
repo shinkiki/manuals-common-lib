@@ -1,13 +1,13 @@
 package kr.co.manuals.common.event;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-
-import java.util.Set;
 
 /**
  * 이벤트 시스템 자동 구성
@@ -37,12 +37,12 @@ public class EventAutoConfiguration {
     /**
      * 기본 EventRuntimeScanner (No-op 구현)
      * <p>
-     * 프로젝트별로 커스텀 스캐너를 제공하지 않으면 빈 Set을 반환합니다.
+     * 프로젝트별로 커스텀 스캐너를 제공하지 않으면 빈 결과를 반환합니다.
      * </p>
      */
-    @org.springframework.context.annotation.Bean
-    @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(EventRuntimeScanner.class)
+    @Bean
+    @ConditionalOnMissingBean(EventRuntimeScanner.class)
     public EventRuntimeScanner defaultEventRuntimeScanner() {
-        return Set::of;
+        return new EventRuntimeScanner() {};
     }
 }
